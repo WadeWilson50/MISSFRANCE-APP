@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Miss France - Vote en Famille</title>
+  <!-- Configuration Application Mobile (PWA / Écran d'accueil iOS & Android) -->
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Miss France" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link id="app-icon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23f59e0b'/%3E%3Cstop offset='100%25' stop-color='%23fcd34d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='112' fill='%23020617'/%3E%3Crect x='24' y='24' width='464' height='464' rx='96' fill='none' stroke='url(%23g)' stroke-width='16'/%3E%3Cpath d='M112 352h288l24-168-96 72-72-112-72 112-96-72 24 168zm16 32h256v28H128v-28z' fill='url(%23g)'/%3E%3C/svg%3E" />
+  <link id="apple-touch-icon" rel="apple-touch-icon" />
+  <link id="pwa-manifest" rel="manifest" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- PeerJS pour la synchronisation multi-appareils sans serveur (GitHub Pages) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    body { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-amber-500 selection:text-slate-950 transition-colors">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-30 bg-slate-950/95 dark:bg-slate-950/95 light:bg-white/95 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-amber-500/20 shrink-0">
+          👑
+        </div>
+        <div class="min-w-0">
+          <h1 id="header-edition-title" class="font-black text-sm sm:text-base tracking-tight truncate">Miss France Famille</h1>
+          <p id="header-round-label" class="text-[11px] text-amber-400 font-bold truncate">Tour 1 • 30 Candidates</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Bouton Résultats TV Officiels (Admin) -->
+        <button type="button" onclick="openOfficialTvResultsModal()" title="Saisir les vraies qualifiées annoncées à la TV" class="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 text-white text-xs font-black flex items-center gap-1 shadow-lg">
+          <span>📺</span>
+          <span class="hidden sm:inline">Résultats TV</span>
+        </button>
+
+        <!-- Bouton Gestion des Candidates / Année -->
+        <button type="button" onclick="openCandidatesManagerModal()" title="Gérer l'année et les candidates" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-amber-400 hover:bg-slate-800 text-xs font-bold flex items-center gap-1">
+          <span>⚙️</span>
+          <span class="hidden lg:inline">Promotion</span>
+        </button>
+
+        <!-- Bouton Son TV -->
+        <button type="button" onclick="toggleSound()" id="sound-btn" title="Activer/Couper les sons TV" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-amber-400 hover:bg-slate-800 text-xs">
+          <span id="sound-icon">🔊</span>
+        </button>
+
+        <!-- Bouton Salon Multi-Appareils -->
+        <button type="button" onclick="openModal('sync-modal')" id="sync-btn" title="Synchroniser plusieurs téléphones" class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-black flex items-center gap-1.5 hover:bg-slate-800 transition-all">
+          <span id="sync-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="sync-btn-label" class="text-slate-200">Salon</span>
+        </button>
+
+        <!-- Sélecteur de Tour -->
+        <select id="round-select" onchange="setRound(this.value)" class="bg-slate-900 border border-slate-700 text-xs font-bold rounded-xl px-2.5 py-1.5 text-amber-400 focus:outline-none focus:border-amber-400">
+          <option value="tour1">Tour 1 (30)</option>
+          <option value="tour2">Tour 2 (Top 15)</option>
+          <option value="tour3">Tour 3 (Top 5)</option>
+          <option value="podium">Podium Final</option>
+        </select>
+
+        <!-- Thème -->
+        <button type="button" onclick="toggleTheme()" title="Changer de thème" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-amber-400 hover:bg-slate-800 text-xs">
+          <span id="theme-icon">☀️</span>
+        </button>
+
+        <!-- Remise à zéro -->
+        <button type="button" onclick="openModal('reset-modal')" title="Remise à zéro" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-rose-400 hover:bg-rose-950/40 text-xs font-bold flex items-center gap-1">
+          <span>🔄</span>
+          <span class="hidden sm:inline">RAZ</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Ligne des Votants -->
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+      <button type="button" onclick="openProfileScreen()" title="Écran des profils" class="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-[10px] font-black uppercase tracking-wider text-amber-400 mr-1 shrink-0">👤 Profils :</button>
+      <div id="voters-bar" class="flex items-center gap-1.5"></div>
+      <button type="button" onclick="openModal('voter-modal')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-black shrink-0">+ Ajouter</button>
+    </div>
+  </header>
+
+  <!-- ÉCRAN DE LANCEMENT / SÉLECTION DE PROFIL -->
+  <div id="welcome-screen" class="fixed inset-0 z-50 bg-slate-950/98 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+    <div class="max-w-md w-full bg-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6 my-auto">
+      <div class="space-y-2">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 text-3xl shadow-lg shadow-amber-500/30 animate-bounce">
+          👑
+        </div>
+        <h2 id="welcome-edition-title" class="text-2xl font-black tracking-tight text-white">Miss France Famille</h2>
+        <p class="text-xs text-amber-400 font-bold uppercase tracking-widest">Qui installe son pupitre ce soir ?</p>
+      </div>
+
+      <!-- Liste des profils existants -->
+      <div class="space-y-2 text-left">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Choisir un profil existant :</label>
+        <div id="welcome-profiles-list" class="grid grid-cols-2 gap-2.5"></div>
+      </div>
+
+      <!-- Créer un nouveau profil -->
+      <div class="pt-4 border-t border-slate-800 space-y-2.5 text-left">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Ou créer un nouveau profil :</label>
+        <div class="flex gap-2">
+          <input id="welcome-new-voter" type="text" placeholder="Votre prénom..." onkeydown="if(event.key==='Enter') createProfileFromWelcome()" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white uppercase font-bold focus:outline-none focus:border-amber-400" />
+          <button type="button" onclick="createProfileFromWelcome()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shrink-0 shadow-lg shadow-amber-500/20">
+            Entrer →
+          </button>
+        </div>
+      </div>
+
+      <p class="text-[10px] text-slate-500">🔊 Le son TV s'activera automatiquement à votre entrée</p>
+    </div>
+  </div>
+
+  <!-- ALERTE VALIDATION GROUPE -->
+  <div id="group-alert-container" class="max-w-7xl w-full mx-auto px-3 sm:px-6 pt-2 hidden"></div>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 sm:py-5 pb-24 md:pb-8 flex flex-col">
+    <!-- Onglets Desktop -->
+    <div class="hidden md:flex items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+      <div id="desktop-tabs" class="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-2xl border border-slate-800"></div>
+    </div>
+
+    <!-- Zone dynamique -->
+    <div id="app-content" class="flex-1 flex flex-col"></div>
+  </main>
+
+  <!-- NAVIGATION MOBILE BASSE -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 px-2 py-1.5 md:hidden">
+    <div id="mobile-tabs" class="flex items-center justify-around max-w-md mx-auto gap-1"></div>
+  </nav>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-20 md:bottom-6 right-4 z-50 hidden px-4 py-3 rounded-2xl shadow-2xl border border-amber-500/40 bg-slate-900 text-amber-200 text-xs sm:text-sm font-bold max-w-xs"></div>
+
+  <!-- MODAL AJOUTER VOTANT -->
+  <div id="voter-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-white">
+      <div class="flex items-center justify-between">
+        <h3 class="font-black text-base">Ajouter un participant</h3>
+        <button type="button" onclick="closeModal('voter-modal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <input id="new-voter-input" type="text" placeholder="Prénom (ex: MAMIE, LUCAS...)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white uppercase font-bold focus:outline-none focus:border-amber-400" />
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeModal('voter-modal')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">Annuler</button>
+        <button type="button" onclick="confirmAddVoter()" class="px-5 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-black">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RECAP QUALIFIEES -->
+  <div id="recap-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white">
+      <div class="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="font-black text-base">Récapitulatif de mes Qualifiées</h3>
+          <p id="recap-subtitle" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" onclick="closeModal('recap-modal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div id="recap-body" class="p-5 overflow-y-auto space-y-2 text-xs"></div>
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2">
+        <button type="button" onclick="closeModal('recap-modal')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">Modifier</button>
+        <button type="button" onclick="confirmQualificationValidation()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">✓ Confirmer et Valider</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL REMISE A ZERO -->
+  <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl text-white">
+      <div class="flex items-center justify-between">
+        <h3 class="font-black text-base text-amber-400">🔄 Remise à Zéro du Salon</h3>
+        <button type="button" onclick="closeModal('reset-modal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Cette action remet à zéro toutes les notes (Tour 1, 2, 3), toutes les Miss qualifiées, les sélections et revient au Tour 1.
+      </p>
+      <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer text-xs">
+        <input id="reset-clear-guests" type="checkbox" checked class="rounded text-amber-500" />
+        <span>Effacer aussi tous les autres invités (ne garder que le votant actif)</span>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeModal('reset-modal')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">Annuler</button>
+        <button type="button" onclick="executeFullReset()" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">Tout remettre à zéro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GESTIONNAIRE ANNUEL DES CANDIDATES (PROMOTION PAR ANNÉE) -->
+  <div id="candidates-manager-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white">
+      <div class="p-5 bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="font-black text-base text-amber-400">⚙️ Gestion de la Promotion (Année & Miss)</h3>
+          <p class="text-xs text-slate-400">Personnalisez les candidates chaque année en quelques secondes</p>
+        </div>
+        <button type="button" onclick="closeModal('candidates-manager-modal')" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-5 text-xs">
+        <!-- Nom de l'édition -->
+        <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <label class="font-black uppercase tracking-wider text-[11px] text-amber-400">Titre de l'édition :</label>
+          <div class="flex gap-2">
+            <input id="edition-title-input" type="text" placeholder="Ex: Miss France 2027" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-amber-400" />
+            <button type="button" onclick="saveEditionTitle()" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black">Renommer</button>
+          </div>
+        </div>
+
+        <!-- Import rapide par copier-coller -->
+        <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-black uppercase tracking-wider text-[11px] text-emerald-400">⚡ Import rapide nouvelle année (1 Miss par ligne) :</label>
+            <button type="button" onclick="loadCurrentListInImporter()" class="text-[11px] text-amber-400 underline font-bold">Charger la liste actuelle</button>
+          </div>
+          <p class="text-[11px] text-slate-400">Format : <code class="text-slate-200">Miss Alsace - Prénom Nom - 20 ans - 1,75 m</code></p>
+          <textarea id="bulk-candidates-textarea" rows="4" placeholder="Miss Alsace - Julie Decroix - 20 ans - 1,75 m&#10;Miss Aquitaine - Aïnhoa Lahitete - 19 ans - 1,73 m..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"></textarea>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300">
+              <input id="bulk-reset-scores" type="checkbox" checked class="rounded text-emerald-500" />
+              <span>Remettre les votes à zéro pour cette nouvelle année</span>
+            </label>
+            <button type="button" onclick="applyBulkCandidatesImport()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">
+              Importer cette promotion
+            </button>
+          </div>
+        </div>
+
+        <!-- Édition ligne par ligne -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-black uppercase tracking-wider text-[11px] text-slate-300">Liste des candidates (<span id="manager-count">30</span>) :</span>
+            <div class="flex gap-2">
+              <button type="button" onclick="restoreDefaultCandidates()" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold">Liste par défaut</button>
+              <button type="button" onclick="addCandidateRowInManager()" class="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 font-black">+ Ajouter une Miss</button>
+            </div>
+          </div>
+          <div id="manager-candidates-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2">
+        <button type="button" onclick="closeModal('candidates-manager-modal')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">Fermer</button>
+        <button type="button" onclick="saveCandidatesFromManager()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black">✓ Sauvegarder la promotion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BILAN HUMORISTIQUE DU JURY -->
+  <div id="jury-awards-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white">
+      <div class="p-5 bg-gradient-to-r from-amber-500/20 via-slate-900 to-purple-950/60 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="font-black text-lg text-amber-400">🎭 Bilan du Tour & Pronostics</h3>
+          <p id="jury-awards-subtitle" class="text-xs text-slate-300">Comparaison avec les résultats officiels TV</p>
+        </div>
+        <button type="button" onclick="closeModal('jury-awards-modal')" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div id="jury-awards-body" class="p-5 overflow-y-auto space-y-3 text-xs"></div>
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-between items-center gap-2">
+        <span class="text-[11px] text-slate-400">Pronostics vs Résultats TV</span>
+        <button type="button" onclick="closeModal('jury-awards-modal')" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black">Continuer →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RÉSULTATS TV OFFICIELS (ADMIN DU SALON) -->
+  <div id="tv-results-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-indigo-500/50 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden text-white">
+      <div class="p-5 bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 border-b border-indigo-500/30 flex items-center justify-between">
+        <div>
+          <h3 id="tv-results-title" class="font-black text-base text-amber-400">📺 Résultats Officiels TV (Admin)</h3>
+          <p id="tv-results-subtitle" class="text-xs text-indigo-200">Cochez les vraies Miss qualifiées annoncées à la télévision</p>
+        </div>
+        <button type="button" onclick="closeModal('tv-results-modal')" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div id="tv-results-body" class="p-5 overflow-y-auto space-y-3 text-xs"></div>
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex flex-wrap justify-between items-center gap-2">
+        <div id="tv-results-counter" class="text-xs font-black text-amber-400">0 sélectionnée(s)</div>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeModal('tv-results-modal')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">Annuler</button>
+          <button type="button" onclick="confirmOfficialTvResults()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shadow-lg">
+            ✓ Valider les Résultats TV & Passer au tour suivant
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SALON MULTI-APPAREILS (PEERJS) -->
+  <div id="sync-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl text-white">
+      <div class="flex items-center justify-between">
+        <h3 class="font-black text-base text-amber-400">📡 Salon Famille en Direct</h3>
+        <button type="button" onclick="closeModal('sync-modal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Connectez tous les téléphones ensemble via votre lien GitHub Pages ! Un appareil crée le salon, les autres rejoignent avec le code à 4 lettres.
+      </p>
+
+      <!-- État actif si connecté -->
+      <div id="sync-active-panel" class="hidden p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] uppercase font-bold text-emerald-300">Salon Actif (<span id="sync-role-label">Hôte</span>)</div>
+            <div id="sync-code-display" class="text-2xl font-black font-mono tracking-widest text-white">----</div>
+          </div>
+          <button type="button" onclick="copySyncCode()" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">📋 Copier lien</button>
+        </div>
+        <div class="text-xs text-emerald-200 flex items-center justify-between pt-2 border-t border-emerald-500/20">
+          <span id="sync-peers-count">En attente d'autres téléphones...</span>
+          <button type="button" onclick="disconnectSync()" class="text-rose-400 font-bold underline">Quitter</button>
+        </div>
+      </div>
+
+      <!-- État déconnecté -->
+      <div id="sync-setup-panel" class="space-y-3">
+        <button type="button" onclick="hostRoom()" class="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg">
+          👑 Créer un salon sur cet appareil (Hôte)
+        </button>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-800"></div>
+          <span class="flex-shrink mx-3 text-[10px] uppercase font-bold text-slate-500">OU REJOINDRE</span>
+          <div class="flex-grow border-t border-slate-800"></div>
+        </div>
+
+        <div class="flex gap-2">
+          <input id="join-room-input" type="text" maxlength="6" placeholder="Code (ex: A7K2)" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white uppercase font-mono font-black tracking-widest focus:outline-none focus:border-amber-400" />
+          <button type="button" onclick="joinRoom()" class="px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black">
+            Rejoindre
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'miss_france_canva_state_v1';
+    const PEER_PREFIX = 'missfrance-famille-room-';
+
+    // --- MOTEUR AUDIO JEU TV (Web Audio API + support intro.mp3 GitHub) ---
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioCtx = new Ctx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? '🔊 Sons TV activés' : '🔇 Sons TV coupés');
+    }
+
+    // Jingle de lancement (tente intro.mp3 sur GitHub, sinon joue un générique gala synthétisé)
+    function playIntroAudio() {
+      if (!soundEnabled) return;
+      try {
+        const customAudio = new Audio('intro.mp3');
+        customAudio.volume = 0.65;
+        customAudio.play().catch(() => {
+          playSynthGalaIntro();
+        });
+      } catch (e) {
+        playSynthGalaIntro();
+      }
+    }
+
+    function playSynthGalaIntro() {
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.11);
+        gain.gain.setValueAtTime(0.001, now + i * 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.11 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.45);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.11);
+        osc.stop(now + i * 0.11 + 0.48);
+      });
+    }
+
+    // Sons selon la note attribuée (< 5 Buzzer, 5..8 Note TV, > 8 Jackpot)
+    function playScoreSound(score) {
+      if (!soundEnabled || typeof score !== 'number') return;
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      if (score < 5) {
+        // BUZZER JEU TV (note < 5)
+        [110, 116].forEach(freq => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.linearRampToValueAtTime(82, now + 0.42);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.46);
+        });
+      } else if (score <= 8) {
+        // NOTE INTERMÉDIAIRE (entre 5 et 8)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.08);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      } else {
+        // JACKPOT / COUP DE COEUR (> 8)
+        const arpeggio = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        arpeggio.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.065);
+          gain.gain.setValueAtTime(0.18, now + idx * 0.065);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.065 + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.065);
+          osc.stop(now + idx * 0.065 + 0.38);
+        });
+      }
+    }
+
+    // --- GESTION ÉCRAN DE LANCEMENT / PROFILS ---
+    function renderWelcomeProfiles() {
+      const listEl = document.getElementById('welcome-profiles-list');
+      if (!listEl) return;
+      listEl.innerHTML = state.voters.map(v => `
+        <button type="button" onclick="selectProfileFromWelcome('${escapeHtml(v)}')" class="p-3.5 rounded-2xl bg-slate-950 hover:bg-amber-500/15 border border-slate-800 hover:border-amber-400 transition-all flex items-center justify-center gap-2 group">
+          <span class="w-7 h-7 rounded-full bg-amber-500/20 text-amber-400 group-hover:bg-amber-400 group-hover:text-slate-950 font-black text-xs flex items-center justify-center">
+            ${escapeHtml(v.charAt(0))}
+          </span>
+          <span class="font-black text-sm text-white truncate">${escapeHtml(v)}</span>
+        </button>
+      `).join('');
+    }
+
+    function openProfileScreen() {
+      renderWelcomeProfiles();
+      document.getElementById('welcome-screen').classList.remove('hidden');
+    }
+
+    function selectProfileFromWelcome(name) {
+      state.activeVoter = name;
+      document.getElementById('welcome-screen').classList.add('hidden');
+      playIntroAudio();
+      saveState();
+      render();
+      showToast(`👑 Bienvenue ${name} !`);
+    }
+
+    function createProfileFromWelcome() {
+      const input = document.getElementById('welcome-new-voter');
+      const name = input.value.trim().toUpperCase();
+      if (!name) return showToast('Entrez un prénom pour créer votre profil.');
+      if (!state.voters.includes(name)) state.voters.push(name);
+      input.value = '';
+      selectProfileFromWelcome(name);
+    }
+
+    const INITIAL_CANDIDATES = [
+      { id: 'alsace', region: 'Miss Alsace', name: 'Julie Decroix', age: '20 ans', height: '1,75 m' },
+      { id: 'aquitaine', region: 'Miss Aquitaine', name: 'Aïnhoa Lahitete', age: '19 ans', height: '1,73 m' },
+      { id: 'auvergne', region: 'Miss Auvergne', name: 'Alice De Lima Guimaraes', age: '19 ans', height: '1,72 m' },
+      { id: 'bourgogne', region: 'Miss Bourgogne', name: 'Charlène Laurin', age: '22 ans', height: '1,82 m' },
+      { id: 'bretagne', region: 'Miss Bretagne', name: 'Ninon Crolas', age: '18 ans', height: '1,71 m' },
+      { id: 'centre-val-de-loire', region: 'Miss Centre-Val de Loire', name: 'Anna Valero', age: '19 ans', height: '1,74 m' },
+      { id: 'champagne-ardenne', region: 'Miss Champagne-Ardenne', name: 'Ynès Lallemand', age: '19 ans', height: '1,72 m' },
+      { id: 'corse', region: 'Miss Corse', name: 'Manon Mateus', age: '23 ans', height: '1,71 m' },
+      { id: 'cote-d-azur', region: "Miss Côte d'Azur", name: 'Luna Maiolino', age: '19 ans', height: '1,75 m' },
+      { id: 'franche-comte', region: 'Miss Franche-Comté', name: 'Jade Cholley', age: '19 ans', height: '1,77 m' },
+      { id: 'guadeloupe', region: 'Miss Guadeloupe', name: 'Naomi Torrent', age: '30 ans', height: '1,77 m' },
+      { id: 'guyane', region: 'Miss Guyane', name: 'Alicia Mertosetiko', age: '20 ans', height: '1,73 m' },
+      { id: 'ile-de-france', region: 'Miss Île-de-France', name: 'Mareva Michel', age: '21 ans', height: '1,78 m' },
+      { id: 'languedoc', region: 'Miss Languedoc', name: 'Lou Lambert', age: '19 ans', height: '1,72 m' },
+      { id: 'limousin', region: 'Miss Limousin', name: 'Aloïce Sejotte', age: '24 ans', height: '1,74 m' },
+      { id: 'lorraine', region: 'Miss Lorraine', name: "Camille L'Étang", age: '23 ans', height: '1,72 m' },
+      { id: 'martinique', region: 'Miss Martinique', name: 'Léaline Patry', age: '21 ans', height: '1,71 m' },
+      { id: 'mayotte', region: 'Miss Mayotte', name: 'Kamillat Hervian', age: '24 ans', height: '1,73 m' },
+      { id: 'midi-pyrenees', region: 'Miss Midi-Pyrénées', name: 'Léa Chabrel', age: '24 ans', height: '1,70 m' },
+      { id: 'nord-pas-de-calais', region: 'Miss Nord-Pas-de-Calais', name: 'Lola Lacheré', age: '20 ans', height: '1,74 m' },
+      { id: 'normandie', region: 'Miss Normandie', name: 'Victoire Dupuis', age: '19 ans', height: '1,70 m' },
+      { id: 'nouvelle-caledonie', region: 'Miss Nouvelle-Calédonie', name: 'Juliette Collet', age: '23 ans', height: '1,70 m' },
+      { id: 'pays-de-la-loire', region: 'Miss Pays de la Loire', name: 'Lola Winter', age: '19 ans', height: '1,71 m' },
+      { id: 'picardie', region: 'Miss Picardie', name: 'Emma Boivin', age: '24 ans', height: '1,77 m' },
+      { id: 'poitou-charentes', region: 'Miss Poitou-Charentes', name: 'Agathe Michelet', age: '26 ans', height: '1,74 m' },
+      { id: 'provence', region: 'Miss Provence', name: 'Julie Zitouni', age: '26 ans', height: '1,72 m' },
+      { id: 'reunion', region: 'Miss Réunion', name: 'Priya Padavatan', age: '19 ans', height: '1,70 m' },
+      { id: 'rhone-alpes', region: 'Miss Rhône-Alpes', name: 'Noémie Baiamonte', age: '21 ans', height: '1,71 m' },
+      { id: 'roussillon', region: 'Miss Roussillon', name: 'Déborah Adelin-Chabal', age: '18 ans', height: '1,75 m' },
+      { id: 'tahiti', region: 'Miss Tahiti', name: 'Hinaupoko Devèze', age: '23 ans', height: '1,82 m' }
+    ];
+
+    function createDefaultState() {
+      return {
+        editionTitle: 'Miss France Famille',
+        voters: ['CEDRIC', 'LEANE', 'ALICE'],
+        activeVoter: 'CEDRIC',
+        currentRound: 'tour1',
+        activeTab: 'cards',
+        viewMode: window.innerWidth < 768 ? 'couch' : 'grid',
+        filterMode: 'all',
+        searchQuery: '',
+        currentIndex: 0,
+        theme: 'dark',
+        candidates: INITIAL_CANDIDATES.map(c => ({ ...c, isQualifiedTour2: false, isQualifiedTour3: false, finalRank: null })),
+        scores: { tour1: {}, tour2: {}, tour3: {} },
+        qualificationPicks: { tour1: {}, tour2: {}, tour3: {} },
+        qualificationValidations: { tour1: {}, tour2: {}, tour3: {} },
+        officialTvWinners: { tour1: [], tour2: [], tour3: [] }, // Vraies qualifiées TV par tour (tour3 = ordre podium [MissFrance, 1ereDauphine, ...])
+        latestAlert: null
+      };
+    }
+
+    function saveState(skipBroadcast = false) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      if (!skipBroadcast) broadcastSyncState();
+    }
+
+    // --- SYNCHRONISATION PEERJS (WEB-RTC MULTI-APPAREILS) ---
+    let peer = null;
+    let syncRole = null; // 'host' | 'guest'
+    let syncRoomCode = null;
+    let hostConnections = []; // Pour l'hôte : liste des invités connectés
+    let guestConnection = null; // Pour l'invité : connexion vers l'hôte
+
+    function generateRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function updateSyncUI() {
+      const dot = document.getElementById('sync-dot');
+      const label = document.getElementById('sync-btn-label');
+      const activePanel = document.getElementById('sync-active-panel');
+      const setupPanel = document.getElementById('sync-setup-panel');
+
+      if (syncRole && syncRoomCode) {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        label.textContent = syncRoomCode;
+        label.className = 'text-emerald-400 font-mono';
+        activePanel.classList.remove('hidden');
+        setupPanel.classList.add('hidden');
+        document.getElementById('sync-role-label').textContent = syncRole === 'host' ? 'Hôte principal' : 'Invité connecté';
+        document.getElementById('sync-code-display').textContent = syncRoomCode;
+        document.getElementById('sync-peers-count').textContent = syncRole === 'host'
+          ? `${hostConnections.length} autre(s) téléphone(s) connecté(s)`
+          : 'Synchronisé en direct avec le salon';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+        label.textContent = 'Salon';
+        label.className = 'text-slate-200';
+        activePanel.classList.add('hidden');
+        setupPanel.classList.remove('hidden');
+      }
+    }
+
+    // Fusionne intelligemment les notes et qualifiées reçues d'un autre appareil sans écraser le votant actif local
+    function mergeIncomingState(remote) {
+      if (!remote) return;
+      const myActiveVoter = state.activeVoter;
+      const myViewMode = state.viewMode;
+      const myTheme = state.theme;
+      const myTab = state.activeTab;
+      const myIndex = state.currentIndex;
+
+      // Fusion des votants
+      const mergedVoters = Array.from(new Set([...(state.voters || []), ...(remote.voters || [])]));
+      state.voters = mergedVoters;
+
+      // Synchronisation du tour officiel et des qualifiées officielles
+      if (remote.editionTitle) state.editionTitle = remote.editionTitle;
+      state.currentRound = remote.currentRound || state.currentRound;
+      if (Array.isArray(remote.candidates)) state.candidates = remote.candidates;
+      if (remote.officialTvWinners) {
+        state.officialTvWinners = {
+          ...(state.officialTvWinners || {}),
+          ...remote.officialTvWinners
+        };
+      }
+      if (remote.latestAlert) state.latestAlert = remote.latestAlert;
+
+      // Fusion des notes et sélections de qualifiées par tour
+      ['tour1', 'tour2', 'tour3'].forEach(rk => {
+        if (remote.scores?.[rk]) {
+          if (!state.scores[rk]) state.scores[rk] = {};
+          Object.entries(remote.scores[rk]).forEach(([candId, voterScores]) => {
+            state.scores[rk][candId] = {
+              ...(state.scores[rk][candId] || {}),
+              ...voterScores
+            };
+          });
+        }
+        if (remote.qualificationPicks?.[rk]) {
+          state.qualificationPicks[rk] = {
+            ...(state.qualificationPicks[rk] || {}),
+            ...remote.qualificationPicks[rk]
+          };
+        }
+        if (remote.qualificationValidations?.[rk]) {
+          state.qualificationValidations[rk] = {
+            ...(state.qualificationValidations[rk] || {}),
+            ...remote.qualificationValidations[rk]
+          };
+        }
+      });
+
+      // Préserver les préférences locales de l'écran
+      state.activeVoter = myActiveVoter;
+      state.viewMode = myViewMode;
+      state.theme = myTheme;
+      state.activeTab = myTab;
+      state.currentIndex = myIndex;
+
+      saveState(true);
+      render(true);
+    }
+
+    // --- BILAN DU TOUR : PRONOSTICS VS RÉSULTATS TV + TROPHÉES DU JURY ---
+    function computeTourForecastStats(rk) {
+      const officialIds = state.officialTvWinners?.[rk] || [];
+      if (!officialIds.length) return null;
+
+      const results = state.voters.map(voter => {
+        const picks = state.qualificationPicks?.[rk]?.[voter] || [];
+        const hits = picks.filter(id => officialIds.includes(id));
+        const misses = picks.filter(id => !officialIds.includes(id));
+        const missedReal = officialIds.filter(id => !picks.includes(id));
+
+        // En finale (tour3), calcul d'un score précis selon le rang exact (Miss France + Dauphines)
+        let exactRankBonus = 0;
+        let foundMissFrance = false;
+        if (rk === 'tour3') {
+          if (picks[0] && picks[0] === officialIds[0]) {
+            exactRankBonus += 5; // Bonus Miss France exacte
+            foundMissFrance = true;
+          }
+          picks.forEach((id, idx) => {
+            if (idx > 0 && officialIds[idx] === id) exactRankBonus += 2; // Bonus dauphine à la bonne place
+          });
+        }
+
+        const totalPoints = hits.length * 2 + exactRankBonus;
+        return {
+          voter,
+          picksCount: picks.length,
+          hitsCount: hits.length,
+          errorsCount: misses.length + (picks.length === 0 ? officialIds.length : 0),
+          missedRealCount: missedReal.length,
+          exactRankBonus,
+          foundMissFrance,
+          totalPoints
+        };
+      });
+
+      return { officialIds, results };
+    }
+
+    function openJuryAwardsModal(roundOverride = null) {
+      const rk = roundOverride || getRoundKey();
+      const roundTitles = { tour1: 'Tour 1 (Top 15)', tour2: 'Tour 2 (Top 5)', tour3: 'Finale (Miss France & Dauphines)' };
+      document.getElementById('jury-awards-subtitle').textContent = `Bilan du ${roundTitles[rk] || rk.toUpperCase()}`;
+
+      const body = document.getElementById('jury-awards-body');
+      let cardsHtml = '';
+
+      // 1. COMPARAISON AVEC LES VRAIS RÉSULTATS TV (MEILLEUR PRONOSTIQUEUR / PLUS D'ERREURS)
+      const forecast = computeTourForecastStats(rk);
+      if (forecast && forecast.results.length) {
+        const sortedByScore = [...forecast.results].sort((a, b) => b.totalPoints - a.totalPoints || b.hitsCount - a.hitsCount);
+        const bestForecaster = sortedByScore[0];
+        const worstForecaster = [...forecast.results].sort((a, b) => b.errorsCount - a.errorsCount || a.hitsCount - b.hitsCount)[0];
+
+        cardsHtml += `
+          <!-- MEILLEUR PRONOSTIQUEUR -->
+          <div class="p-4 rounded-2xl bg-gradient-to-br from-amber-500/25 via-slate-950 to-emerald-950/60 border-2 border-amber-400 space-y-1.5 shadow-lg">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] uppercase">🏆 Meilleur Pronostiqueur TV</span>
+              <span class="font-mono font-black text-amber-300 text-sm">${bestForecaster.hitsCount} / ${forecast.officialIds.length} trouvées</span>
+            </div>
+            <div class="text-xl font-black text-white">${escapeHtml(bestForecaster.voter)} ${bestForecaster.foundMissFrance ? '👑' : ''}</div>
+            <p class="text-slate-200 leading-relaxed">
+              ${bestForecaster.foundMissFrance
+                ? `Incroyable ! <strong>${escapeHtml(bestForecaster.voter)}</strong> avait trouvé la vraie Miss France et ${bestForecaster.hitsCount}/${forecast.officialIds.length} finalistes !`
+                : `Œil de lynx ! <strong>${escapeHtml(bestForecaster.voter)}</strong> a deviné ${bestForecaster.hitsCount} vraies qualifiées sur ${forecast.officialIds.length} (${bestForecaster.totalPoints} pts).`}
+            </p>
+          </div>
+        `;
+
+        if (worstForecaster && worstForecaster.voter !== bestForecaster.voter) {
+          cardsHtml += `
+            <!-- CELUI QUI A FAIT LE PLUS D'ERREURS -->
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-purple-950/80 via-slate-950 to-rose-950/50 border border-purple-500/40 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-black text-[11px] uppercase">🙈 Le Plus d'Erreurs</span>
+                <span class="font-mono font-black text-rose-400 text-sm">${worstForecaster.errorsCount} erreur(s)</span>
+              </div>
+              <div class="text-lg font-black text-white">${escapeHtml(worstForecaster.voter)}</div>
+              <p class="text-slate-300 leading-relaxed italic">
+                « ${worstForecaster.picksCount === 0
+                  ? `N'avait même pas validé ses pronostics avant l'annonce de Jean-Pierre Foucault !`
+                  : `Seulement ${worstForecaster.hitsCount}/${forecast.officialIds.length} trouvées... Visiblement pas le même écran que le jury TF1 !`} »
+              </p>
+            </div>
+          `;
+        }
+
+        // Classement des pronostics de toute la famille
+        cardsHtml += `
+          <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+            <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">📊 Score Pronostics du Tour :</div>
+            ${sortedByScore.map((r, i) => `
+              <div class="flex items-center justify-between py-1 border-b border-slate-900 last:border-0">
+                <span class="font-bold text-white">#${i + 1} ${escapeHtml(r.voter)}</span>
+                <span class="font-mono text-xs">
+                  <strong class="text-emerald-400">${r.hitsCount}/${forecast.officialIds.length} OK</strong>
+                  <span class="text-slate-500 mx-1">•</span>
+                  <strong class="text-amber-400">${r.totalPoints} pts</strong>
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        cardsHtml += `
+          <div class="p-3 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-200 text-[11px]">
+            💡 Astuce : Cliquez sur <strong>📺 Résultats TV</strong> en haut pour cocher les vraies Miss qualifiées à la télé et voir qui a fait le meilleur pronostic !
+          </div>
+        `;
+      }
+
+      // 2. STATISTIQUES DE NOTATION (PLUS SÉVÈRE / PLUS SYMPA)
+      const stats = state.voters.map(voter => {
+        const notes = [];
+        Object.values(state.scores[rk] || {}).forEach(candScores => {
+          if (typeof candScores[voter] === 'number') notes.push(candScores[voter]);
+        });
+        if (!notes.length) return { voter, count: 0, avg: null, min: null, max: null, spread: 0 };
+        const sum = notes.reduce((a, b) => a + b, 0);
+        const avg = sum / notes.length;
+        const min = Math.min(...notes);
+        const max = Math.max(...notes);
+        return { voter, count: notes.length, avg, min, max, spread: max - min };
+      }).filter(s => s.count > 0);
+
+      if (stats.length) {
+        const sortedByAvg = [...stats].sort((a, b) => a.avg - b.avg);
+        const harshest = sortedByAvg[0];
+        const nicest = sortedByAvg[sortedByAvg.length - 1];
+        const mostExtremist = [...stats].sort((a, b) => b.spread - a.spread)[0];
+
+        cardsHtml += `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div class="p-3.5 rounded-2xl bg-rose-950/50 border border-rose-500/30 space-y-1">
+              <div class="text-[10px] font-black uppercase text-rose-300">🥶 Le + Sévère</div>
+              <div class="font-black text-base text-white">${escapeHtml(harshest.voter)}</div>
+              <div class="text-xs font-mono font-bold text-rose-400">Moy. ${harshest.avg.toFixed(2)}/10</div>
+              <p class="text-[11px] text-slate-300 italic">« Même Geneviève aurait trouvé ça dur ! »</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 space-y-1">
+              <div class="text-[10px] font-black uppercase text-emerald-300">🥰 Le + Sympa</div>
+              <div class="font-black text-base text-white">${escapeHtml(nicest.voter)}</div>
+              <div class="text-xs font-mono font-bold text-emerald-400">Moy. ${nicest.avg.toFixed(2)}/10</div>
+              <p class="text-[11px] text-slate-300 italic">« L'école des fans, tout le monde gagne ! »</p>
+            </div>
+          </div>
+        `;
+
+        if (mostExtremist && mostExtremist.spread >= 4) {
+          cardsHtml += `
+            <div class="p-3.5 rounded-2xl bg-amber-950/50 border border-amber-500/30 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase text-amber-300">🎢 Prix Montagnes Russes</span>
+                <span class="font-mono font-black text-amber-400 text-xs">Écart de ${mostExtremist.spread} pts (${mostExtremist.min} à ${mostExtremist.max}/10)</span>
+              </div>
+              <div class="font-black text-sm text-white">${escapeHtml(mostExtremist.voter)}</div>
+            </div>
+          `;
+        }
+      }
+
+      if (!cardsHtml) {
+        cardsHtml = `<div class="p-6 text-center text-slate-400 rounded-2xl bg-slate-950 border border-slate-800">Aucune donnée enregistrée sur ce tour pour le moment.</div>`;
+      }
+
+      body.innerHTML = cardsHtml;
+      openModal('jury-awards-modal');
+    }
+
+    // --- GESTIONNAIRE DES RÉSULTATS TV OFFICIELS (ADMIN DU SALON) ---
+    let draftTvWinners = [];
+
+    function openOfficialTvResultsModal() {
+      const rk = getRoundKey();
+      const target = rk === 'tour1' ? 15 : 5;
+      draftTvWinners = [...(state.officialTvWinners?.[rk] || [])];
+
+      const titles = {
+        tour1: '📺 Tour 1 : Sélectionnez les 15 Qualifiées TV',
+        tour2: '📺 Tour 2 : Sélectionnez les 5 Finalistes TV',
+        tour3: '👑 Finale : Cliquez dans l’ordre (Miss France puis 1ʳᵉ à 4ᵉ Dauphine)'
+      };
+      document.getElementById('tv-results-title').textContent = titles[rk];
+      document.getElementById('tv-results-subtitle').textContent = rk === 'tour3'
+        ? '1er clic = Miss France, 2e = 1ʳᵉ Dauphine, 3e = 2ᵉ Dauphine, etc.'
+        : `Cochez les ${target} candidates qualifiées à la télé pour débloquer l'étape suivante`;
+
+      renderTvResultsList();
+      openModal('tv-results-modal');
+    }
+
+    function toggleTvWinner(candId) {
+      const rk = getRoundKey();
+      const maxAllowed = rk === 'tour1' ? 15 : 5;
+      const idx = draftTvWinners.indexOf(candId);
+      if (idx !== -1) {
+        draftTvWinners.splice(idx, 1);
+      } else {
+        if (draftTvWinners.length >= maxAllowed) {
+          showToast(`Maximum ${maxAllowed} candidates pour ce tour !`);
+          return;
+        }
+        draftTvWinners.push(candId);
+      }
+      renderTvResultsList();
+    }
+
+    function renderTvResultsList() {
+      const rk = getRoundKey();
+      const target = rk === 'tour1' ? 15 : 5;
+      const pool = getPoolForCurrentRound();
+      const rankLabels = ['👑 MISS FRANCE', '🥈 1ʳᵉ Dauphine', '🥉 2ᵉ Dauphine', '4️⃣ 3ᵉ Dauphine', '5️⃣ 4ᵉ Dauphine'];
+
+      document.getElementById('tv-results-counter').textContent = `${draftTvWinners.length} / ${target} sélectionnée(s)`;
+
+      document.getElementById('tv-results-body').innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          ${pool.map(c => {
+            const pos = draftTvWinners.indexOf(c.id);
+            const isSelected = pos !== -1;
+            const familyVoters = state.voters.filter(v => (state.qualificationPicks?.[rk]?.[v] || []).includes(c.id));
+            return `
+              <div onclick="toggleTvWinner('${c.id}')" class="p-3 rounded-2xl border-2 cursor-pointer flex items-center justify-between gap-2 transition-all ${isSelected ? 'bg-emerald-950 border-emerald-400 shadow-lg' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}">
+                <div class="min-w-0">
+                  <div class="font-black text-sm truncate ${isSelected ? 'text-emerald-300' : 'text-white'}">
+                    ${isSelected ? (rk === 'tour3' ? rankLabels[pos] : '✅ ') : ''}${escapeHtml(c.region)}
+                  </div>
+                  <div class="text-[11px] text-slate-400 truncate">${escapeHtml(c.name)}</div>
+                  ${familyVoters.length ? `<div class="text-[10px] text-amber-400/90 mt-0.5 truncate">Prono : ${familyVoters.join(', ')}</div>` : ''}
+                </div>
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${isSelected ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-500'}">
+                  ${isSelected ? (rk === 'tour3' ? pos + 1 : '✓') : '+'}
+                </span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function confirmOfficialTvResults() {
+      const rk = getRoundKey();
+      if (draftTvWinners.length === 0) {
+        return showToast('Sélectionnez au moins une candidate qualifiée.');
+      }
+
+      if (!state.officialTvWinners) state.officialTvWinners = { tour1: [], tour2: [], tour3: [] };
+      state.officialTvWinners[rk] = [...draftTvWinners];
+
+      if (rk === 'tour1') {
+        state.candidates = state.candidates.map(c => ({
+          ...c,
+          isQualifiedTour2: draftTvWinners.includes(c.id)
+        }));
+        state.currentRound = 'tour2';
+        state.latestAlert = { voter: '📺 RÉSULTATS TV', count: draftTvWinners.length, round: 'tour1' };
+        showToast(`📺 Top ${draftTvWinners.length} officiel validé ! Place au Tour 2.`);
+      } else if (rk === 'tour2') {
+        state.candidates = state.candidates.map(c => ({
+          ...c,
+          isQualifiedTour3: draftTvWinners.includes(c.id)
+        }));
+        state.currentRound = 'tour3';
+        state.latestAlert = { voter: '📺 RÉSULTATS TV', count: draftTvWinners.length, round: 'tour2' };
+        showToast(`📺 Top ${draftTvWinners.length} Finalistes validé ! Place à la Finale.`);
+      } else {
+        state.candidates = state.candidates.map(c => {
+          const rankIdx = draftTvWinners.indexOf(c.id);
+          return { ...c, finalRank: rankIdx !== -1 ? rankIdx + 1 : null };
+        });
+        state.currentRound = 'podium';
+        state.activeTab = 'podium';
+        state.latestAlert = { voter: '👑 MISS FRANCE ÉLUE', count: draftTvWinners.length, round: 'tour3' };
+        if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+        showToast('👑 Podium officiel Miss France enregistré !');
+      }
+
+      state.currentIndex = 0;
+      closeModal('tv-results-modal');
+      saveState();
+      render();
+      openJuryAwardsModal(rk);
+    }
+
+    function broadcastSyncState() {
+      if (!syncRole) return;
+      const payload = { type: 'SYNC_STATE', state };
+      if (syncRole === 'host') {
+        hostConnections.forEach(conn => { if (conn.open) conn.send(payload); });
+      } else if (syncRole === 'guest' && guestConnection && guestConnection.open) {
+        guestConnection.send(payload);
+      }
+    }
+
+    function hostRoom(customCode = null) {
+      disconnectSync(true);
+      const code = customCode || generateRoomCode();
+      showToast('Création du salon en cours...');
+      peer = new Peer(PEER_PREFIX + code);
+
+      peer.on('open', () => {
+        syncRole = 'host';
+        syncRoomCode = code;
+        updateSyncUI();
+        showToast(`📡 Salon ${code} ouvert ! Partagez ce code.`);
+      });
+
+      peer.on('connection', conn => {
+        hostConnections.push(conn);
+        updateSyncUI();
+        conn.on('open', () => {
+          conn.send({ type: 'SYNC_STATE', state });
+          showToast('📱 Un nouveau téléphone a rejoint le salon !');
+        });
+        conn.on('data', data => {
+          if (data?.type === 'SYNC_STATE') {
+            mergeIncomingState(data.state);
+            // Relayer à tous les autres invités connectés
+            hostConnections.forEach(c => {
+              if (c !== conn && c.open) c.send({ type: 'SYNC_STATE', state });
+            });
+          }
+        });
+        conn.on('close', () => {
+          hostConnections = hostConnections.filter(c => c !== conn);
+          updateSyncUI();
+        });
+      });
+
+      peer.on('error', err => {
+        if (err.type === 'unavailable-id') {
+          hostRoom(); // Réessayer avec un autre code
+        } else {
+          showToast('Erreur réseau salon : ' + err.type);
+          disconnectSync(true);
+        }
+      });
+    }
+
+    function joinRoom(codeParam = null) {
+      const input = document.getElementById('join-room-input');
+      const code = (codeParam || input.value).trim().toUpperCase();
+      if (!code) return showToast('Entrez le code du salon.');
+      disconnectSync(true);
+      showToast(`Connexion au salon ${code}...`);
+      peer = new Peer();
+
+      peer.on('open', () => {
+        const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+        guestConnection = conn;
+
+        conn.on('open', () => {
+          syncRole = 'guest';
+          syncRoomCode = code;
+          updateSyncUI();
+          closeModal('sync-modal');
+          showToast(`✅ Connecté au salon ${code} !`);
+          // Envoyer notre votant actif pour apparaître chez les autres
+          conn.send({ type: 'SYNC_STATE', state });
+        });
+
+        conn.on('data', data => {
+          if (data?.type === 'SYNC_STATE') {
+            mergeIncomingState(data.state);
+          }
+        });
+
+        conn.on('close', () => {
+          showToast('Déconnecté du salon hôte.');
+          disconnectSync(true);
+        });
+      });
+
+      peer.on('error', () => {
+        showToast(`Impossible de trouver le salon ${code}.`);
+        disconnectSync(true);
+      });
+    }
+
+    function disconnectSync(silent = false) {
+      if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+      syncRole = null;
+      syncRoomCode = null;
+      hostConnections = [];
+      guestConnection = null;
+      updateSyncUI();
+      if (!silent) showToast('Salon quitté.');
+    }
+
+    function copySyncCode() {
+      if (!syncRoomCode) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', syncRoomCode);
+      const textToCopy = url.toString();
+      const temp = document.createElement('textarea');
+      temp.value = textToCopy;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      showToast(`📋 Lien d'invitation copié (Code : ${syncRoomCode}) !`);
+    }
+
+    let state = (() => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return { ...createDefaultState(), ...JSON.parse(saved) };
+      } catch (e) {}
+      return createDefaultState();
+    })();
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
+    }
+
+    function openModal(id) {
+      const m = document.getElementById(id);
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function getRoundKey() {
+      return state.currentRound === 'podium' ? 'tour3' : state.currentRound;
+    }
+
+    function getPoolForCurrentRound() {
+      if (state.currentRound === 'tour2') {
+        const q2 = state.candidates.filter(c => c.isQualifiedTour2);
+        return q2.length ? q2 : state.candidates;
+      }
+      if (state.currentRound === 'tour3' || state.currentRound === 'podium') {
+        const q3 = state.candidates.filter(c => c.isQualifiedTour3);
+        return q3.length ? q3 : state.candidates;
+      }
+      return state.candidates;
+    }
+
+    function getFilteredCandidates() {
+      const rk = getRoundKey();
+      let pool = getPoolForCurrentRound();
+      if (state.filterMode === 'unvoted') {
+        pool = pool.filter(c => state.scores[rk]?.[c.id]?.[state.activeVoter] === undefined);
+      } else if (state.filterMode === 'voted') {
+        pool = pool.filter(c => state.scores[rk]?.[c.id]?.[state.activeVoter] !== undefined);
+      } else if (state.filterMode === 'qualified') {
+        const picks = state.qualificationPicks[rk]?.[state.activeVoter] || [];
+        pool = pool.filter(c => picks.includes(c.id));
+      }
+      if (state.searchQuery.trim()) {
+        const q = state.searchQuery.toLowerCase().trim();
+        pool = pool.filter(c => c.region.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
+      }
+      return pool;
+    }
+
+    function getCandidateAvg(candId, roundKey) {
+      const vals = state.voters.map(v => state.scores[roundKey]?.[candId]?.[v]).filter(v => typeof v === 'number');
+      if (!vals.length) return null;
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+
+    function setRound(round) {
+      state.currentRound = round;
+      state.currentIndex = 0;
+      saveState();
+      render();
+    }
+
+    function setVoter(voter) {
+      state.activeVoter = voter;
+      saveState();
+      render();
+    }
+
+    function confirmAddVoter() {
+      const input = document.getElementById('new-voter-input');
+      const name = input.value.trim().toUpperCase();
+      if (!name) return;
+      if (!state.voters.includes(name)) state.voters.push(name);
+      state.activeVoter = name;
+      input.value = '';
+      closeModal('voter-modal');
+      saveState();
+      showToast(`Votant ${name} actif !`);
+      render();
+    }
+
+    function setTab(tab) {
+      state.activeTab = tab;
+      saveState();
+      render();
+    }
+
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      saveState();
+      render();
+    }
+
+    function setFilterMode(mode) {
+      state.filterMode = mode;
+      state.currentIndex = 0;
+      saveState();
+      render();
+    }
+
+    function setSearch(val) {
+      state.searchQuery = val;
+      state.currentIndex = 0;
+      render(true);
+    }
+
+    function setScore(candId, score) {
+      const rk = getRoundKey();
+      if (!state.scores[rk]) state.scores[rk] = {};
+      if (!state.scores[rk][candId]) state.scores[rk][candId] = {};
+      if (score === undefined || score === null) {
+        delete state.scores[rk][candId][state.activeVoter];
+      } else {
+        state.scores[rk][candId][state.activeVoter] = score;
+        playScoreSound(score);
+      }
+      saveState();
+      render();
+    }
+
+    function toggleQualPick(candId) {
+      const rk = getRoundKey();
+      if (!state.qualificationPicks[rk]) state.qualificationPicks[rk] = {};
+      const picks = [...(state.qualificationPicks[rk][state.activeVoter] || [])];
+      const idx = picks.indexOf(candId);
+      if (idx !== -1) picks.splice(idx, 1);
+      else picks.push(candId);
+      state.qualificationPicks[rk][state.activeVoter] = picks;
+      saveState();
+      render();
+    }
+
+    function autofillBestNotes() {
+      const rk = getRoundKey();
+      const target = state.currentRound === 'tour1' ? 15 : 5;
+      const pool = [...getPoolForCurrentRound()].sort((a, b) => {
+        const sA = state.scores[rk]?.[a.id]?.[state.activeVoter] ?? state.scores.tour1?.[a.id]?.[state.activeVoter] ?? -1;
+        const sB = state.scores[rk]?.[b.id]?.[state.activeVoter] ?? state.scores.tour1?.[b.id]?.[state.activeVoter] ?? -1;
+        return sB - sA;
+      });
+      if (!state.qualificationPicks[rk]) state.qualificationPicks[rk] = {};
+      state.qualificationPicks[rk][state.activeVoter] = pool.slice(0, target).map(c => c.id);
+      saveState();
+      showToast(`⚡ Vos ${target} meilleures notes sélectionnées !`);
+      render();
+    }
+
+    function clearQualPicks() {
+      const rk = getRoundKey();
+      if (!state.qualificationPicks[rk]) state.qualificationPicks[rk] = {};
+      state.qualificationPicks[rk][state.activeVoter] = [];
+      saveState();
+      render();
+    }
+
+    function openRecapModal() {
+      const rk = getRoundKey();
+      const picks = state.qualificationPicks[rk]?.[state.activeVoter] || [];
+      const target = state.currentRound === 'tour1' ? 15 : 5;
+      document.getElementById('recap-subtitle').textContent = `Votant : ${state.activeVoter} • ${picks.length}/${target} choisies`;
+      const selected = state.candidates.filter(c => picks.includes(c.id));
+      document.getElementById('recap-body').innerHTML = selected.map((c, i) => {
+        const s = state.scores[rk]?.[c.id]?.[state.activeVoter];
+        return `<div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+          <div><span class="text-emerald-400 font-black mr-2">#${i + 1}</span><strong>${escapeHtml(c.region)}</strong> <span class="text-slate-400">${escapeHtml(c.name)}</span></div>
+          ${s !== undefined ? `<span class="bg-amber-500/20 text-amber-400 font-mono font-black px-2 py-0.5 rounded">${s}/10</span>` : ''}
+        </div>`;
+      }).join('');
+      openModal('recap-modal');
+    }
+
+    function confirmQualificationValidation() {
+      const rk = getRoundKey();
+      const picks = state.qualificationPicks[rk]?.[state.activeVoter] || [];
+      if (!state.qualificationValidations[rk]) state.qualificationValidations[rk] = {};
+      state.qualificationValidations[rk][state.activeVoter] = { count: picks.length, at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+      state.latestAlert = { voter: state.activeVoter, count: picks.length, round: state.currentRound };
+      closeModal('recap-modal');
+      saveState();
+      if (typeof confetti === 'function') confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+      showToast(`🎉 ${state.activeVoter} a validé ses ${picks.length} qualifiées !`);
+      render();
+    }
+
+    // --- GESTIONNAIRE ANNUEL DES CANDIDATES (ÉDITION PAR ANNÉE) ---
+    let draftCandidates = [];
+
+    function openCandidatesManagerModal() {
+      document.getElementById('edition-title-input').value = state.editionTitle || 'Miss France Famille';
+      draftCandidates = state.candidates.map(c => ({ ...c }));
+      renderManagerCandidatesList();
+      openModal('candidates-manager-modal');
+    }
+
+    function saveEditionTitle() {
+      const val = document.getElementById('edition-title-input').value.trim();
+      state.editionTitle = val || 'Miss France Famille';
+      saveState();
+      render();
+      showToast(`👑 Édition renommée : ${state.editionTitle}`);
+    }
+
+    function renderManagerCandidatesList() {
+      document.getElementById('manager-count').textContent = draftCandidates.length;
+      const listEl = document.getElementById('manager-candidates-list');
+      listEl.innerHTML = draftCandidates.map((c, idx) => `
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+          <input type="text" value="${escapeHtml(c.region)}" onchange="draftCandidates[${idx}].region=this.value" placeholder="Région (ex: Miss Alsace)" class="sm:col-span-4 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-amber-400" />
+          <input type="text" value="${escapeHtml(c.name)}" onchange="draftCandidates[${idx}].name=this.value" placeholder="Prénom Nom" class="sm:col-span-4 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white" />
+          <input type="text" value="${escapeHtml(c.age || '')}" onchange="draftCandidates[${idx}].age=this.value" placeholder="Âge" class="sm:col-span-2 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300" />
+          <div class="sm:col-span-2 flex items-center gap-1">
+            <input type="text" value="${escapeHtml(c.height || '')}" onchange="draftCandidates[${idx}].height=this.value" placeholder="Taille" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300" />
+            <button type="button" onclick="removeCandidateRowInManager(${idx})" title="Supprimer" class="p-1.5 rounded-lg bg-rose-950/60 text-rose-400 hover:bg-rose-600 hover:text-white font-bold shrink-0">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addCandidateRowInManager() {
+      const slug = 'miss-' + Date.now().toString(36);
+      draftCandidates.push({
+        id: slug,
+        region: 'Miss Nouvelle Région',
+        name: 'Prénom Nom',
+        age: '20 ans',
+        height: '1,74 m',
+        isQualifiedTour2: false,
+        isQualifiedTour3: false,
+        finalRank: null
+      });
+      renderManagerCandidatesList();
+    }
+
+    function removeCandidateRowInManager(idx) {
+      draftCandidates.splice(idx, 1);
+      renderManagerCandidatesList();
+    }
+
+    function loadCurrentListInImporter() {
+      const lines = draftCandidates.map(c => `${c.region} - ${c.name}${c.age ? ' - ' + c.age : ''}${c.height ? ' - ' + c.height : ''}`);
+      document.getElementById('bulk-candidates-textarea').value = lines.join('\n');
+    }
+
+    function slugifyRegion(str, fallbackIdx) {
+      const base = str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      return base || ('miss-' + fallbackIdx);
+    }
+
+    function applyBulkCandidatesImport() {
+      const raw = document.getElementById('bulk-candidates-textarea').value.trim();
+      if (!raw) return showToast('Collez d’abord la liste des candidates.');
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      const parsed = lines.map((line, idx) => {
+        const parts = line.split(/\s*[-–|;]\s*/);
+        const region = parts[0] || `Miss Région ${idx + 1}`;
+        const name = parts[1] || 'Candidate';
+        const age = parts[2] || '';
+        const height = parts[3] || '';
+        return {
+          id: slugifyRegion(region, idx),
+          region,
+          name,
+          age,
+          height,
+          isQualifiedTour2: false,
+          isQualifiedTour3: false,
+          finalRank: null
+        };
+      });
+
+      draftCandidates = parsed;
+      renderManagerCandidatesList();
+
+      if (document.getElementById('bulk-reset-scores').checked) {
+        state.scores = { tour1: {}, tour2: {}, tour3: {} };
+        state.qualificationPicks = { tour1: {}, tour2: {}, tour3: {} };
+        state.qualificationValidations = { tour1: {}, tour2: {}, tour3: {} };
+        state.currentRound = 'tour1';
+        state.currentIndex = 0;
+        state.latestAlert = null;
+      }
+
+      saveCandidatesFromManager();
+      showToast(`✨ ${parsed.length} candidates importées pour la nouvelle édition !`);
+    }
+
+    function restoreDefaultCandidates() {
+      draftCandidates = INITIAL_CANDIDATES.map(c => ({ ...c, isQualifiedTour2: false, isQualifiedTour3: false, finalRank: null }));
+      renderManagerCandidatesList();
+      showToast('Liste par défaut rechargée (cliquez sur Sauvegarder).');
+    }
+
+    function saveCandidatesFromManager() {
+      const titleVal = document.getElementById('edition-title-input').value.trim();
+      if (titleVal) state.editionTitle = titleVal;
+      state.candidates = draftCandidates.filter(c => c.region.trim() || c.name.trim()).map((c, idx) => ({
+        ...c,
+        id: c.id || slugifyRegion(c.region, idx),
+        region: c.region.trim() || `Miss ${idx + 1}`,
+        name: c.name.trim() || 'Candidate'
+      }));
+      state.currentIndex = 0;
+      closeModal('candidates-manager-modal');
+      saveState();
+      render();
+      showToast(`✅ Promotion sauvegardée (${state.candidates.length} candidates) !`);
+    }
+
+    function applyPicksAsOfficialRound() {
+      const rk = getRoundKey();
+      const picks = state.qualificationPicks[rk]?.[state.activeVoter] || [];
+      if (!picks.length) return showToast('Sélectionnez d’abord vos qualifiées.');
+      const finishedRoundKey = rk;
+      if (state.currentRound === 'tour1') {
+        state.candidates = state.candidates.map(c => ({ ...c, isQualifiedTour2: picks.includes(c.id) }));
+        state.currentRound = 'tour2';
+        showToast(`✨ Tour 2 lancé avec ${picks.length} qualifiées !`);
+      } else if (state.currentRound === 'tour2') {
+        state.candidates = state.candidates.map(c => ({ ...c, isQualifiedTour3: picks.includes(c.id) }));
+        state.currentRound = 'tour3';
+        showToast(`✨ Finale Top 5 lancée avec ${picks.length} finalistes !`);
+      } else {
+        state.candidates = state.candidates.map(c => {
+          const rankIdx = picks.indexOf(c.id);
+          return { ...c, finalRank: rankIdx !== -1 ? rankIdx + 1 : null };
+        });
+        state.currentRound = 'podium';
+        showToast('👑 Podium officiel enregistré !');
+      }
+      state.activeTab = 'cards';
+      state.currentIndex = 0;
+      saveState();
+      render();
+      openJuryAwardsModal(finishedRoundKey);
+    }
+
+    function executeFullReset() {
+      const clearGuests = document.getElementById('reset-clear-guests').checked;
+      const keepVoter = state.activeVoter || 'CEDRIC';
+      const keptCandidates = state.candidates.map(c => ({ ...c, isQualifiedTour2: false, isQualifiedTour3: false, finalRank: null }));
+      const keptTitle = state.editionTitle;
+      const fresh = createDefaultState();
+      fresh.editionTitle = keptTitle;
+      fresh.candidates = keptCandidates;
+      fresh.theme = state.theme;
+      fresh.viewMode = state.viewMode;
+      fresh.voters = clearGuests ? [keepVoter] : state.voters;
+      fresh.activeVoter = keepVoter;
+      state = fresh;
+      closeModal('reset-modal');
+      saveState();
+      showToast('✨ Remise à zéro totale effectuée !');
+      render();
+    }
+
+    function toggleTheme() {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      saveState();
+      render();
+    }
+
+    function prevCandidate(len) {
+      if (!len) return;
+      state.currentIndex = (state.currentIndex - 1 + len) % len;
+      saveState();
+      render();
+    }
+
+    function nextCandidate(len) {
+      if (!len) return;
+      state.currentIndex = (state.currentIndex + 1) % len;
+      saveState();
+      render();
+    }
+
+    let touchStartX = null;
+    function onCardTouchStart(e) { touchStartX = e.changedTouches[0].clientX; }
+    function onCardTouchEnd(e, len) {
+      if (touchStartX === null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 45) { dx < 0 ? nextCandidate(len) : prevCandidate(len); }
+      touchStartX = null;
+    }
+
+    function render(preserveSearchFocus = false) {
+      const isLight = state.theme === 'light';
+      document.documentElement.classList.toggle('dark', !isLight);
+      document.body.className = `${isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'} min-h-screen flex flex-col selection:bg-amber-500 selection:text-slate-950 transition-colors`;
+      document.getElementById('theme-icon').textContent = isLight ? '🌙' : '☀️';
+      document.getElementById('round-select').value = state.currentRound;
+
+      const editionTitle = state.editionTitle || 'Miss France Famille';
+      document.getElementById('header-edition-title').textContent = editionTitle;
+      const welcomeTitleEl = document.getElementById('welcome-edition-title');
+      if (welcomeTitleEl) welcomeTitleEl.textContent = editionTitle;
+
+      const roundNames = {
+        tour1: `Tour 1 • ${state.candidates.length} Candidates`,
+        tour2: 'Tour 2 • Top 15',
+        tour3: 'Tour 3 • Top 5 Finale',
+        podium: '👑 Podium Officiel'
+      };
+      document.getElementById('header-round-label').textContent = roundNames[state.currentRound];
+
+      // Voters bar
+      document.getElementById('voters-bar').innerHTML = state.voters.map(v => `
+        <button type="button" onclick="setVoter('${escapeHtml(v)}')" class="px-3 py-1 rounded-lg text-xs font-black whitespace-nowrap transition-all ${state.activeVoter === v ? 'bg-amber-400 text-slate-950 shadow' : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-900 text-slate-300 border border-slate-800'}">
+          ${escapeHtml(v)}
+        </button>
+      `).join('');
+
+      // Group Alert Banner
+      const alertEl = document.getElementById('group-alert-container');
+      if (state.latestAlert) {
+        alertEl.classList.remove('hidden');
+        alertEl.innerHTML = `
+          <div class="p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg flex items-center justify-between gap-2 text-xs">
+            <div>📢 <strong>${escapeHtml(state.latestAlert.voter)}</strong> a validé ses <strong>${state.latestAlert.count} qualifiées</strong> !</div>
+            <button type="button" onclick="state.latestAlert=null;saveState();render();" class="px-2 py-0.5 rounded bg-white/20 font-bold">✕</button>
+          </div>`;
+      } else {
+        alertEl.classList.add('hidden');
+      }
+
+      const rk = getRoundKey();
+      const myQualCount = (state.qualificationPicks[rk]?.[state.activeVoter] || []).length;
+
+      const tabs = [
+        { id: 'cards', label: 'Voter', icon: '🗳️' },
+        { id: 'qualifications', label: `Qualifiées${myQualCount ? ` (${myQualCount})` : ''}`, icon: '✅' },
+        { id: 'rankings', label: 'Classement', icon: '📈' },
+        { id: 'table', label: 'Tableau', icon: '📊' },
+        { id: 'podium', label: 'Podium', icon: '👑' }
+      ];
+
+      document.getElementById('desktop-tabs').innerHTML = tabs.map(t => `
+        <button type="button" onclick="setTab('${t.id}')" class="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${state.activeTab === t.id ? (t.id === 'qualifications' ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950') : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+          <span>${t.icon}</span><span>${t.label}</span>
+        </button>
+      `).join('');
+
+      document.getElementById('mobile-tabs').innerHTML = tabs.map(t => `
+        <button type="button" onclick="setTab('${t.id}')" class="flex flex-col items-center py-1 px-2 rounded-xl text-[10px] font-bold ${state.activeTab === t.id ? (t.id === 'qualifications' ? 'text-emerald-400 bg-emerald-500/15' : 'text-amber-400 bg-amber-500/15') : 'text-slate-400'}">
+          <span class="text-base leading-none mb-0.5">${t.icon}</span>
+          <span>${t.id === 'qualifications' ? `Qualif.${myQualCount ? ` (${myQualCount})` : ''}` : t.label}</span>
+        </button>
+      `).join('');
+
+      const container = document.getElementById('app-content');
+
+      // TAB 1: VOTER
+      if (state.activeTab === 'cards') {
+        const basePool = getPoolForCurrentRound();
+        const unvotedCount = basePool.filter(c => state.scores[rk]?.[c.id]?.[state.activeVoter] === undefined).length;
+        const votedCount = basePool.length - unvotedCount;
+        const qualCount = (state.qualificationPicks[rk]?.[state.activeVoter] || []).length;
+        const list = getFilteredCandidates();
+        if (state.currentIndex >= list.length) state.currentIndex = 0;
+
+        const filterBar = `
+          <div class="space-y-2 mb-3">
+            <div class="flex items-center gap-2">
+              <input id="search-input" type="text" value="${escapeHtml(state.searchQuery)}" oninput="setSearch(this.value)" placeholder="Rechercher une région ou Miss..." class="flex-1 ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400" />
+              <button type="button" onclick="setViewMode('${state.viewMode === 'couch' ? 'grid' : 'couch'}')" class="px-3 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-black shrink-0">
+                ${state.viewMode === 'couch' ? '📺 Grille' : '📱 Canapé'}
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px] font-bold">
+              ${[
+                { id: 'all', label: `Toutes (${basePool.length})` },
+                { id: 'unvoted', label: `À noter (${unvotedCount})` },
+                { id: 'voted', label: `Notées (${votedCount})` },
+                { id: 'qualified', label: `Qualifiées (${qualCount})` }
+              ].map(f => `
+                <button type="button" onclick="setFilterMode('${f.id}')" class="px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${state.filterMode === f.id ? (f.id === 'qualified' ? 'bg-emerald-500 text-slate-950 font-black' : 'bg-amber-500 text-slate-950 font-black') : isLight ? 'bg-white border border-slate-200 text-slate-700' : 'bg-slate-900 border border-slate-800 text-slate-300'}">
+                  ${f.label}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        if (!list.length) {
+          container.innerHTML = filterBar + `<div class="p-8 text-center rounded-3xl border border-slate-800 text-slate-400 text-sm">Aucune candidate dans ce filtre.</div>`;
+        } else if (state.viewMode === 'couch') {
+          const c = list[state.currentIndex];
+          const myScore = state.scores[rk]?.[c.id]?.[state.activeVoter];
+          const t1Score = rk !== 'tour1' ? state.scores.tour1?.[c.id]?.[state.activeVoter] : undefined;
+          const isQual = (state.qualificationPicks[rk]?.[state.activeVoter] || []).includes(c.id);
+          const avg = getCandidateAvg(c.id, rk);
+
+          container.innerHTML = filterBar + `
+            <div ontouchstart="onCardTouchStart(event)" ontouchend="onCardTouchEnd(event, ${list.length})" class="max-w-md w-full mx-auto rounded-3xl p-5 border-2 transition-all flex flex-col justify-between gap-3 ${isQual ? (isLight ? 'bg-gradient-to-b from-emerald-100 via-emerald-50 to-teal-100 border-emerald-500 shadow-xl' : 'bg-gradient-to-b from-emerald-950 via-slate-900 to-teal-950 border-emerald-400 shadow-2xl') : (isLight ? 'bg-white border-slate-200 shadow-xl' : 'bg-slate-900 border-slate-800 shadow-2xl')}">
+              ${isQual ? `<div class="bg-emerald-500 text-slate-950 px-3 py-1 rounded-xl text-[11px] font-black uppercase flex justify-between"><span>✓ QUALIFIÉE</span><span>${escapeHtml(state.activeVoter)}</span></div>` : ''}
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400">${state.currentIndex + 1} / ${list.length}</span>
+                <button type="button" onclick="toggleQualPick('${c.id}')" class="px-3 py-1.5 rounded-xl text-xs font-black border ${isQual ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-800 text-emerald-400 border-slate-700'}">
+                  ${isQual ? '✓ Qualifiée !' : '+ Qualifier'}
+                </button>
+              </div>
+              <div class="text-center py-1">
+                <h2 class="text-2xl font-black uppercase ${isQual ? 'text-emerald-400' : ''}">${escapeHtml(c.region)}</h2>
+                <div class="text-xl font-black text-amber-400">${escapeHtml(c.name)}</div>
+                <div class="text-xs text-slate-400 mt-0.5">${escapeHtml(c.age)} • ${escapeHtml(c.height)}</div>
+              </div>
+              ${t1Score !== undefined ? `
+                <div class="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs flex items-center justify-between">
+                  <span class="font-bold text-amber-300">Mémoire T1 : ${t1Score}/10</span>
+                  ${myScore === undefined ? `<button type="button" onclick="setScore('${c.id}', ${t1Score})" class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px]">⚡ Reprendre (${t1Score})</button>` : ''}
+                </div>` : ''}
+              <div class="p-3 rounded-2xl ${isLight ? 'bg-slate-100' : 'bg-slate-950'} border border-slate-800/60 flex items-center justify-between">
+                <div>
+                  <div class="text-[10px] uppercase font-bold text-slate-400">Ma note (${escapeHtml(state.activeVoter)})</div>
+                  ${myScore !== undefined ? `<button type="button" onclick="setScore('${c.id}', null)" class="text-[10px] text-rose-400 font-bold">Effacer</button>` : ''}
+                </div>
+                <div class="text-2xl font-black font-mono text-amber-400">${myScore !== undefined ? myScore : '-'} <span class="text-xs text-slate-500">/ 10</span></div>
+              </div>
+              <div class="space-y-1.5">
+                <div class="grid grid-cols-6 gap-1.5">
+                  ${[0,1,2,3,4,5].map(n => `<button type="button" onclick="setScore('${c.id}', ${n})" class="h-11 rounded-xl font-black text-base ${myScore === n ? 'bg-amber-500 text-slate-950' : isLight ? 'bg-slate-200 text-slate-800' : 'bg-slate-800 text-white'}">${n}</button>`).join('')}
+                </div>
+                <div class="grid grid-cols-5 gap-1.5">
+                  ${[6,7,8,9,10].map(n => `<button type="button" onclick="setScore('${c.id}', ${n})" class="h-11 rounded-xl font-black text-base ${myScore === n ? 'bg-amber-500 text-slate-950' : isLight ? 'bg-slate-200 text-slate-800' : 'bg-slate-800 text-white'}">${n}</button>`).join('')}
+                </div>
+                <div class="grid grid-cols-4 gap-1.5">
+                  ${[6.5,7.5,8.5,9.5].map(n => `<button type="button" onclick="setScore('${c.id}', ${n})" class="h-9 rounded-xl font-bold text-xs ${myScore === n ? 'bg-amber-500 text-slate-950 font-black' : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800/60 text-amber-400'}">${n}</button>`).join('')}
+                </div>
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs">
+                <span class="text-slate-400">Moyenne famille : <strong class="text-amber-400">${avg !== null ? avg.toFixed(1) : '-'} ★</strong></span>
+                <div class="flex gap-2">
+                  <button type="button" onclick="prevCandidate(${list.length})" class="px-4 py-2 rounded-xl bg-slate-800 text-white font-black">◀</button>
+                  <button type="button" onclick="nextCandidate(${list.length})" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black">▶</button>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          container.innerHTML = filterBar + `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              ${list.map(c => {
+                const myScore = state.scores[rk]?.[c.id]?.[state.activeVoter];
+                const t1Score = rk !== 'tour1' ? state.scores.tour1?.[c.id]?.[state.activeVoter] : undefined;
+                const isQual = (state.qualificationPicks[rk]?.[state.activeVoter] || []).includes(c.id);
+                const avg = getCandidateAvg(c.id, rk);
+                return `
+                  <div class="rounded-2xl p-4 border-2 transition-all flex flex-col justify-between gap-2.5 ${isQual ? (isLight ? 'bg-gradient-to-br from-emerald-100 via-emerald-50 to-teal-100 border-emerald-500 shadow-lg' : 'bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 border-emerald-400 shadow-xl') : (isLight ? 'bg-white border-slate-200 shadow' : 'bg-slate-900 border-slate-800')}">
+                    ${isQual ? `<div class="bg-emerald-500 text-slate-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase flex justify-between"><span>✓ QUALIFIÉE</span><span>${escapeHtml(state.activeVoter)}</span></div>` : ''}
+                    <div class="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 class="font-black text-base ${isQual ? 'text-emerald-400' : ''}">${escapeHtml(c.region)}</h3>
+                        <p class="text-xs text-slate-400">${escapeHtml(c.name)} • ${escapeHtml(c.age)}</p>
+                      </div>
+                      <button type="button" onclick="toggleQualPick('${c.id}')" class="px-2.5 py-1 rounded-xl text-[11px] font-black border shrink-0 ${isQual ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-800 text-emerald-400 border-slate-700'}">
+                        ${isQual ? 'Qualifiée !' : 'Qualifier'}
+                      </button>
+                    </div>
+                    ${t1Score !== undefined ? `
+                      <div class="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] flex items-center justify-between">
+                        <span>Mémoire T1 : <strong>${t1Score}/10</strong></span>
+                        ${myScore === undefined ? `<button type="button" onclick="setScore('${c.id}', ${t1Score})" class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black text-[10px]">⚡ Reprendre</button>` : ''}
+                      </div>` : ''}
+                    <div class="grid grid-cols-11 gap-1 pt-1">
+                      ${[0,1,2,3,4,5,6,7,8,9,10].map(n => `<button type="button" onclick="setScore('${c.id}', ${n})" class="py-1.5 rounded text-[11px] font-bold ${myScore === n ? 'bg-amber-500 text-slate-950 font-black' : isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-800 text-slate-300'}">${n}</button>`).join('')}
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                      <span>Moyenne : <strong class="text-amber-400">${avg !== null ? avg.toFixed(1) : '-'} ★</strong></span>
+                      <span>Ma note : <strong class="text-amber-400">${myScore !== undefined ? myScore + '/10' : '-'}</strong></span>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>`;
+        }
+      }
+
+      // TAB 2: QUALIFIEES
+      else if (state.activeTab === 'qualifications') {
+        const target = state.currentRound === 'tour1' ? 15 : 5;
+        const pool = [...getPoolForCurrentRound()].sort((a, b) => {
+          const sA = state.scores[rk]?.[a.id]?.[state.activeVoter] ?? state.scores.tour1?.[a.id]?.[state.activeVoter] ?? -1;
+          const sB = state.scores[rk]?.[b.id]?.[state.activeVoter] ?? state.scores.tour1?.[b.id]?.[state.activeVoter] ?? -1;
+          return sB - sA;
+        });
+        const picks = state.qualificationPicks[rk]?.[state.activeVoter] || [];
+
+        container.innerHTML = `
+          <div class="max-w-4xl w-full mx-auto space-y-4">
+            <div class="rounded-3xl p-5 border ${isLight ? 'bg-white border-amber-300' : 'bg-slate-900 border-slate-800'} shadow-xl space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 class="text-xl font-black">Choisissez vos ${target} Qualifiées</h2>
+                  <p class="text-xs text-slate-400">Votant actif : <strong class="text-amber-400">${escapeHtml(state.activeVoter)}</strong></p>
+                </div>
+                <div class="px-4 py-2 rounded-2xl ${picks.length === target ? 'bg-emerald-500 text-slate-950' : 'bg-slate-950 text-white border border-slate-800'} text-center">
+                  <div class="text-xl font-black font-mono">${picks.length} / ${target}</div>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="autofillBestNotes()" class="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow">
+                  ⚡ Voici vos ${target} meilleures notes (1 clic)
+                </button>
+                <button type="button" onclick="clearQualPicks()" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Effacer</button>
+                <button type="button" onclick="openRecapModal()" ${picks.length ? '' : 'disabled'} class="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black text-xs ml-auto">
+                  📋 Récapitulatif & Valider
+                </button>
+              </div>
+              <div class="pt-2 border-t border-slate-800/60 flex flex-wrap gap-2">
+                ${state.voters.map(v => {
+                  const val = state.qualificationValidations[rk]?.[v];
+                  const cnt = (state.qualificationPicks[rk]?.[v] || []).length;
+                  return `<span class="px-2.5 py-1 rounded-xl text-[11px] font-bold ${val ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-950 text-slate-400 border border-slate-800'}">
+                    ${escapeHtml(v)} : ${val ? 'Validé ✅' : `${cnt}/${target}`}
+                  </span>`;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              ${pool.map(c => {
+                const isPicked = picks.includes(c.id);
+                const s = state.scores[rk]?.[c.id]?.[state.activeVoter];
+                return `
+                  <div onclick="toggleQualPick('${c.id}')" class="p-3.5 rounded-2xl border-2 cursor-pointer flex items-center justify-between gap-2 transition-all ${isPicked ? (isLight ? 'bg-emerald-100 border-emerald-500' : 'bg-emerald-950 border-emerald-400') : (isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800')}">
+                    <div class="min-w-0">
+                      <div class="font-black text-sm truncate ${isPicked ? 'text-emerald-400' : ''}">${isPicked ? '✓ ' : ''}${escapeHtml(c.region)}</div>
+                      <div class="text-xs text-slate-400 truncate">${escapeHtml(c.name)}</div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-black ${s !== undefined ? 'bg-amber-500/20 text-amber-400' : 'text-slate-500'}">${s !== undefined ? s + '/10' : '-'}</span>
+                  </div>`;
+              }).join('')}
+            </div>
+
+            <div class="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div>
+                <div class="font-bold text-indigo-200">L'animateur annonce les vraies qualifiées à la télé ?</div>
+                <div class="text-[11px] text-slate-400">L'admin du salon coche les gagnantes TV pour filtrer le tour suivant et calculer les points.</div>
+              </div>
+              <button type="button" onclick="openOfficialTvResultsModal()" class="px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black shadow">
+                📺 Saisir les Résultats TV →
+              </button>
+            </div>
+          </div>`;
+      }
+
+      // TAB 3: CLASSEMENT
+      else if (state.activeTab === 'rankings') {
+        const ranked = [...getPoolForCurrentRound()].map(c => ({ c, avg: getCandidateAvg(c.id, rk) }))
+          .sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
+        container.innerHTML = `
+          <div class="max-w-3xl w-full mx-auto space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h2 class="text-lg font-black">Classement Famille en Direct (${rk.toUpperCase()})</h2>
+              <button type="button" onclick="openJuryAwardsModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-amber-500 text-white font-black text-xs shadow-lg hover:opacity-95">
+                🎭 Trophées du Jury (+ Sévère / + Sympa)
+              </button>
+            </div>
+            ${ranked.map((item, i) => `
+              <div class="p-3.5 rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-amber-400 text-slate-950' : i === 1 ? 'bg-slate-300 text-slate-950' : i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'}">#${i + 1}</span>
+                  <div class="min-w-0">
+                    <div class="font-black text-sm truncate">${escapeHtml(item.c.region)}</div>
+                    <div class="text-xs text-slate-400 truncate">${escapeHtml(item.c.name)}</div>
+                  </div>
+                </div>
+                <div class="text-base font-black font-mono text-amber-400 shrink-0">${item.avg !== null ? item.avg.toFixed(2) : '-'} ★</div>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      // TAB 4: TABLEAU
+      else if (state.activeTab === 'table') {
+        const pool = getPoolForCurrentRound();
+        container.innerHTML = `
+          <div class="overflow-x-auto rounded-2xl border border-slate-800">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900 text-slate-300 uppercase">
+                <tr>
+                  <th class="p-3">Miss</th>
+                  ${state.voters.map(v => `<th class="p-3 text-center">${escapeHtml(v)}</th>`).join('')}
+                  <th class="p-3 text-center text-amber-400">Moy.</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                ${pool.map(c => {
+                  const avg = getCandidateAvg(c.id, rk);
+                  return `<tr class="${isLight ? 'bg-white' : 'bg-slate-950'}">
+                    <td class="p-3 font-bold">${escapeHtml(c.region)}<div class="text-[10px] text-slate-400 font-normal">${escapeHtml(c.name)}</div></td>
+                    ${state.voters.map(v => {
+                      const s = state.scores[rk]?.[c.id]?.[v];
+                      return `<td class="p-3 text-center font-mono">${s !== undefined ? s : '-'}</td>`;
+                    }).join('')}
+                    <td class="p-3 text-center font-black font-mono text-amber-400">${avg !== null ? avg.toFixed(1) : '-'}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      }
+
+      // TAB 5: PODIUM
+      else if (state.activeTab === 'podium') {
+        const officialFinalIds = state.officialTvWinners?.tour3 || [];
+        const officialRanked = officialFinalIds
+          .map((id, idx) => ({ c: state.candidates.find(cand => cand.id === id), rank: idx + 1 }))
+          .filter(item => item.c);
+
+        const familyRanked = [...state.candidates].map(c => ({ c, avg: getCandidateAvg(c.id, 'tour3') ?? getCandidateAvg(c.id, 'tour2') ?? getCandidateAvg(c.id, 'tour1') }))
+          .sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1)).slice(0, 5);
+
+        const rankLabels = ['👑 MISS FRANCE', '🥈 1ʳᵉ Dauphine', '🥉 2ᵉ Dauphine', '4️⃣ 3ᵉ Dauphine', '5️⃣ 4ᵉ Dauphine'];
+
+        container.innerHTML = `
+          <div class="max-w-3xl w-full mx-auto space-y-5 text-center">
+            ${officialRanked.length ? `
+              <div class="space-y-2.5">
+                <h2 class="text-2xl font-black text-amber-400">👑 Podium Officiel Miss France (TV)</h2>
+                ${officialRanked.map((item, i) => `
+                  <div class="p-4 rounded-2xl border-2 ${i === 0 ? 'bg-gradient-to-r from-amber-500/30 via-slate-900 to-amber-500/30 border-amber-400 shadow-xl' : 'bg-slate-900 border-indigo-500/40'} flex items-center justify-between">
+                    <div class="text-left">
+                      <div class="text-xs font-black text-amber-400">${rankLabels[i] || `${i + 1}ᵉ`}</div>
+                      <div class="text-lg font-black text-white">${escapeHtml(item.c.region)}</div>
+                      <div class="text-xs text-slate-400">${escapeHtml(item.c.name)}</div>
+                    </div>
+                    <div class="text-xs font-bold text-emerald-400">Officiel TV ✅</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div class="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 flex flex-wrap items-center justify-between gap-2 text-left text-xs">
+                <span class="text-indigo-200">Le podium officiel TV n'a pas encore été validé par l'administrateur.</span>
+                <button type="button" onclick="openOfficialTvResultsModal()" class="px-4 py-2 rounded-xl bg-indigo-500 text-white font-black">📺 Saisir le Podium TV</button>
+              </div>
+            `}
+
+            <div class="space-y-2.5 pt-2">
+              <h3 class="text-lg font-black text-slate-300">⭐ Top 5 selon les notes de la Famille</h3>
+              ${familyRanked.map((item, i) => `
+                <div class="p-3.5 rounded-2xl border ${i === 0 ? 'bg-slate-900 border-amber-500/50' : 'bg-slate-900/70 border-slate-800'} flex items-center justify-between">
+                  <div class="text-left">
+                    <div class="text-[11px] font-black text-amber-400">${i === 0 ? '👑 Coup de cœur Famille' : `${i}ᵉ Dauphine Famille`}</div>
+                    <div class="text-base font-black">${escapeHtml(item.c.region)}</div>
+                    <div class="text-xs text-slate-400">${escapeHtml(item.c.name)}</div>
+                  </div>
+                  <div class="text-lg font-black font-mono text-amber-400">${item.avg !== null ? item.avg.toFixed(2) : '-'} ★</div>
+                </div>`).join('')}
+            </div>
+
+            <div class="pt-2">
+              <button type="button" onclick="openJuryAwardsModal()" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-amber-500 text-white font-black text-xs shadow-xl">
+                🏆 Voir le Meilleur Pronostiqueur & les Trophées du Jury
+              </button>
+            </div>
+          </div>`;
+      }
+
+      if (preserveSearchFocus) {
+        const si = document.getElementById('search-input');
+        if (si) { si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+      }
+    }
+
+    render();
+    renderWelcomeProfiles();
+
+    // Connexion automatique si le lien contient ?room=CODE
+    window.addEventListener('DOMContentLoaded', () => {
+      // Génération dynamique de l'icône haute résolution et du manifeste PWA pour l'écran d'accueil
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#0f172a');
+        grad.addColorStop(1, '#020617');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        const gold = ctx.createLinearGradient(0, 0, 512, 512);
+        gold.addColorStop(0, '#f59e0b');
+        gold.addColorStop(1, '#fde047');
+        ctx.strokeStyle = gold;
+        ctx.lineWidth = 18;
+        ctx.strokeRect(24, 24, 464, 464);
+
+        ctx.font = '250px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👑', 256, 270);
+
+        const pngUrl = canvas.toDataURL('image/png');
+        document.getElementById('apple-touch-icon').href = pngUrl;
+
+        const manifest = {
+          name: 'Miss France - Vote en Famille',
+          short_name: 'Miss France',
+          start_url: window.location.pathname,
+          display: 'standalone',
+          background_color: '#020617',
+          theme_color: '#020617',
+          icons: [{ src: pngUrl, sizes: '512x512', type: 'image/png' }]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+      } catch (e) {}
+
+      const params = new URLSearchParams(window.location.search);
+      const autoRoom = params.get('room');
+      if (autoRoom) {
+        document.getElementById('join-room-input').value = autoRoom.toUpperCase();
+        setTimeout(() => joinRoom(autoRoom), 400);
+      }
+    });
+  </script>
+</body>
+</html>
